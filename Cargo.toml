@@ -1,0 +1,57 @@
+[package]
+name = "finalunlock-all-rust"
+version = "2.0.0"
+edition = "2021"
+description = "FinalShell 激活码 Telegram 机器人 - Rust 版本"
+authors = ["xymn2023"]
+license = "MIT"
+repository = "https://github.com/xymn2023/finalunlock-all"
+
+[dependencies]
+# Telegram Bot API
+teloxide = { version = "0.12", features = ["macros", "webhooks"] }
+tokio = { version = "1.0", features = ["full"] }
+
+# HTTP Client & Web
+reqwest = { version = "0.11", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Database & Storage
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite", "chrono"] }
+
+# Date & Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Configuration & Environment
+dotenv = "0.15"
+config = "0.14"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Async utilities
+futures = "0.3"
+
+# Cryptography (for FinalShell activation code generation)
+md-5 = "0.10"
+sha3 = "0.10"
+base64 = "0.21"
+
+# System monitoring
+sysinfo = "0.30"
+psutil = "3.2"
+
+# File handling
+glob = "0.3"
+
+# Command line interface
+clap = { version = "4.0", features = ["derive"] }
+
+[dev-dependencies]
+tokio-test = "0.4"

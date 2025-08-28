@@ -4,7 +4,7 @@
 
 **🎯 高性能 | 🛡️ 内存安全 | 📊 完整监控 | 🔧 企业级稳定性**
 
-[快速开始](#-快速开始) • [功能特性](#-功能特性) • 
+[快速开始](#-快速开始) • [功能特性](#-功能特性) • [Demo](@toosvideo_bot)
 
 </div>
 
@@ -316,5 +316,9 @@ RUST_LOG=debug ./target/release/finalunlock-rust bot
 如果这个项目对您有帮助，请考虑给我们一个 ⭐ Star！
 
 [⬆️ 回到顶部](#-finalshell-激活码-telegram-机器人-rust-版本)
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=xymn2023/finalunlock-rust&type=Date)](https://www.star-history.com/#xymn2023/finalunlock-rust&Date)
 
 </div>

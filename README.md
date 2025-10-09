@@ -4,7 +4,7 @@
 
 **🎯 高性能 | 🛡️ 内存安全 | 📊 完整监控 | 🔧 企业级稳定性**
 
-[快速开始](#-快速开始) • [功能特性](#-功能特性) • [Demo](https://t.me/toosvideo_bot)  [精简版](https://github.com/xymn2023/FinalUnlock）
+[快速开始](#-快速开始) • [功能特性](#-功能特性) • [Demo](https://t.me/toosvideo_bot)  • [精简版](https://github.com/xymn2023/FinalUnlock)
 
 </div>
 

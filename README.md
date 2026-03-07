@@ -53,7 +53,7 @@ cargo --version
 ```bash
 # 克隆项目
 git clone https://github.com/xymn2023/finalunlock-rust.git
-cd finalunlock-all
+cd finalunlock-rust
 
 # 配置环境变量
 cp env.example .env

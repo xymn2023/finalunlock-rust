@@ -122,10 +122,24 @@ build_project() {
 init_database() {
     print_info "初始化数据库..."
     
-    if ./target/release/${BINARY_NAME} initdb; then
+    # 确保当前目录有写入权限
+    if [ ! -w "." ]; then
+        print_error "当前目录没有写入权限"
+        print_info "请确保您有足够的权限创建数据库文件"
+        exit 1
+    fi
+    
+    # 尝试创建数据库目录（如果需要）
+    mkdir -p .
+    
+    if ./target/release/${BINARY_NAME} init-db; then
         print_success "数据库初始化成功"
     else
         print_error "数据库初始化失败"
+        print_info "可能的原因："
+        print_info "1. 权限不足"
+        print_info "2. 磁盘空间不足"
+        print_info "3. 数据库文件被锁定"
         exit 1
     fi
 }

@@ -71,7 +71,7 @@ async fn main() -> Result<()> {
         }
         Some(Commands::InitDb) => {
             info!("初始化数据库...");
-            database::migrate(&db).await?;
+            // 数据库已经在上面的init调用中初始化和迁移
             info!("数据库初始化完成");
         }
         None => {

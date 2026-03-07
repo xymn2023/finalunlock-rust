@@ -122,7 +122,7 @@ build_project() {
 init_database() {
     print_info "初始化数据库..."
     
-    if ./target/release/${BINARY_NAME} init-db; then
+    if ./target/release/${BINARY_NAME} initdb; then
         print_success "数据库初始化成功"
     else
         print_error "数据库初始化失败"

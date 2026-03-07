@@ -122,25 +122,66 @@ build_project() {
 init_database() {
     print_info "初始化数据库..."
     
-    # 确保当前目录有写入权限
-    if [ ! -w "." ]; then
-        print_error "当前目录没有写入权限"
-        print_info "请确保您有足够的权限创建数据库文件"
-        exit 1
+    # 检查数据库文件是否存在
+    if [ -f "./data/finalshell_bot.db" ]; then
+        print_success "数据库文件已存在，直接使用"
+        return 0
     fi
     
-    # 尝试创建数据库目录（如果需要）
-    mkdir -p .
+    if [ -f "./finalshell_bot.db" ]; then
+        print_success "数据库文件已存在，直接使用"
+        return 0
+    fi
     
-    if ./target/release/${BINARY_NAME} init-db; then
-        print_success "数据库初始化成功"
+    # 数据库文件不存在，需要创建
+    print_info "数据库文件不存在，开始创建..."
+    
+    # 确保数据目录存在
+    mkdir -p data
+    chmod 775 data
+    
+    # 检查SQLite是否安装
+    if ! command -v sqlite3 &> /dev/null; then
+        print_warning "SQLite 未安装，尝试安装..."
+        if command -v apt-get &> /dev/null; then
+            apt-get update && apt-get install -y sqlite3
+        elif command -v yum &> /dev/null; then
+            yum install -y sqlite
+        elif command -v apk &> /dev/null; then
+            apk add sqlite
+        else
+            print_error "无法自动安装SQLite，请手动安装"
+            exit 1
+        fi
+    fi
+    
+    # 使用SQL脚本初始化数据库
+    if [ -f "init_db.sql" ]; then
+        print_info "使用SQL脚本初始化数据库..."
+        if sqlite3 ./data/finalshell_bot.db < init_db.sql; then
+            print_success "数据库初始化成功"
+            chmod 666 ./data/finalshell_bot.db
+            # 复制到当前目录作为备用
+            cp ./data/finalshell_bot.db ./finalshell_bot.db 2>/dev/null || true
+        else
+            print_error "SQL脚本执行失败"
+            # 回退到应用程序初始化
+            print_info "尝试使用应用程序初始化..."
+            if ./target/release/${BINARY_NAME} init-db; then
+                print_success "应用程序初始化数据库成功"
+            else
+                print_error "所有尝试都失败，请检查系统权限"
+                exit 1
+            fi
+        fi
     else
-        print_error "数据库初始化失败"
-        print_info "可能的原因："
-        print_info "1. 权限不足"
-        print_info "2. 磁盘空间不足"
-        print_info "3. 数据库文件被锁定"
-        exit 1
+        print_warning "SQL脚本不存在，使用应用程序初始化..."
+        if ./target/release/${BINARY_NAME} init-db; then
+            print_success "应用程序初始化数据库成功"
+        else
+            print_error "数据库初始化失败"
+            exit 1
+        fi
     fi
 }
 
@@ -206,19 +247,28 @@ start_bot() {
         fi
     fi
     
+    # 检查BOT_TOKEN是否有效
+    source .env
+    if [[ "$BOT_TOKEN" == "123456789:ABCdefGHIjklMNOpqrsTUVwxyz" ]]; then
+        print_error "BOT_TOKEN 未配置，请在 .env 文件中设置有效的 Telegram Bot Token"
+        print_info "请访问 https://t.me/BotFather 创建机器人并获取 Token"
+        return 1
+    fi
+    
     # 启动机器人
     nohup ./target/release/${BINARY_NAME} bot > bot.log 2>&1 &
     local pid=$!
     echo $pid > "$PID_FILE"
     
-    sleep 2
+    sleep 3
     
     if kill -0 "$pid" 2>/dev/null; then
         print_success "机器人启动成功 (PID: $pid)"
+        print_info "查看日志: tail -f bot.log"
     else
         print_error "机器人启动失败"
+        print_info "查看错误日志: cat bot.log"
         rm -f "$PID_FILE"
-        exit 1
     fi
 }
 

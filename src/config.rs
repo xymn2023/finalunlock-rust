@@ -30,7 +30,7 @@ impl Config {
             .collect();
 
         let database_url = env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "sqlite:finalshell_bot.db".to_string());
+            .unwrap_or_else(|_| "sqlite:./finalshell_bot.db".to_string());
 
         let max_user_requests = env::var("MAX_USER_REQUESTS")
             .unwrap_or_else(|_| "3".to_string())

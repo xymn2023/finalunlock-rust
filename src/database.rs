@@ -1,19 +1,116 @@
 use anyhow::Result;
 use chrono::Utc;
 use sqlx::{sqlite::SqlitePool, Row, SqlitePool as Pool};
-use tracing::{info, warn};
+use std::fs;
+use std::path::Path;
+use tracing::{info, warn, error};
 
 use crate::models::{ActivationLog, SystemStats, User, UserStats};
 
 pub async fn init(database_url: &str) -> Result<Pool> {
     info!("正在连接数据库: {}", database_url);
     
-    let pool = SqlitePool::connect(database_url).await?;
+    // 提取数据库文件路径（如果是文件数据库）
+    if database_url.starts_with("sqlite:") {
+        let db_path = database_url.trim_start_matches("sqlite:");
+        
+        // 如果路径不是绝对路径，使用相对路径
+        let db_path = if !db_path.starts_with("/") && !db_path.starts_with("./") {
+            format!("./{}", db_path)
+        } else {
+            db_path.to_string()
+        };
+        
+        // 确保数据库目录存在
+        if let Some(dir) = Path::new(&db_path).parent() {
+            if !dir.exists() {
+                info!("创建数据库目录: {:?}", dir);
+                if let Err(e) = fs::create_dir_all(dir) {
+                    error!("创建数据库目录失败: {}", e);
+                    // 继续执行，SQLite 可能会自动创建目录
+                }
+            }
+        }
+        
+        // 测试文件写入权限
+        if let Some(dir) = Path::new(&db_path).parent() {
+            if !dir.exists() {
+                // 如果目录不存在，尝试创建
+                if let Err(e) = fs::create_dir_all(dir) {
+                    error!("创建数据库目录失败: {}", e);
+                }
+            }
+            
+            // 测试写入权限
+            let test_file = dir.join(".test_write");
+            if let Err(e) = fs::File::create(&test_file) {
+                error!("测试写入权限失败: {}", e);
+                warn!("数据库目录可能没有写入权限，尝试使用当前目录");
+            } else {
+                // 清理测试文件
+                let _ = fs::remove_file(test_file);
+            }
+        }
+    }
     
-    // 运行数据库迁移
-    migrate(&pool).await?;
+    // 尝试多次连接
+    let mut attempts = 0;
+    let max_attempts = 3;
+    let mut last_error: Option<anyhow::Error> = None;
     
-    Ok(pool)
+    while attempts < max_attempts {
+        attempts += 1;
+        info!("尝试连接数据库 ({}): {}", attempts, database_url);
+        
+        match SqlitePool::connect(database_url).await {
+            Ok(pool) => {
+                info!("数据库连接成功");
+                
+                // 运行数据库迁移
+                match migrate(&pool).await {
+                    Ok(_) => {
+                        info!("数据库初始化成功");
+                        return Ok(pool);
+                    }
+                    Err(e) => {
+                        error!("数据库迁移失败: {}", e);
+                        last_error = Some(e.into());
+                        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                    }
+                }
+            }
+            Err(e) => {
+                error!("数据库连接失败 ({}): {}", attempts, e);
+                last_error = Some(e.into());
+                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+            }
+        }
+    }
+    
+    // 如果所有尝试都失败，尝试使用内存数据库
+    info!("所有文件数据库尝试都失败，尝试使用内存数据库...");
+    match SqlitePool::connect("sqlite::memory:").await {
+        Ok(pool) => {
+            info!("内存数据库连接成功");
+            if let Ok(_) = migrate(&pool).await {
+                info!("内存数据库初始化成功");
+                warn!("使用内存数据库，数据将在程序重启后丢失");
+                return Ok(pool);
+            } else {
+                error!("内存数据库迁移失败");
+            }
+        }
+        Err(e) => {
+            error!("内存数据库连接失败: {}", e);
+        }
+    }
+    
+    // 如果所有尝试都失败，返回最后一个错误
+    if let Some(err) = last_error {
+        Err(err)
+    } else {
+        Err(anyhow::anyhow!("无法连接数据库，未知错误"))
+    }
 }
 
 pub async fn migrate(pool: &Pool) -> Result<()> {
